@@ -12,20 +12,19 @@ Map updates → Repeat
 ```mermaid
 flowchart TD
 
-    A[Gazebo Simulation] 
-        -->|Sensor data<br/>(LIDAR, Camera)| B[SLAM<br/>(slam_toolbox etc.)]
+    A[Gazebo Simulation] -->|Sensor data: LIDAR, Camera| B[SLAM using slam_toolbox]
 
-    B -->|Publishes map| C[/map topic<br/>(OccupancyGrid)]
+    B -->|Publishes map| C[Map Topic: OccupancyGrid]
 
     C --> D[Map Listener Node]
 
-    D -->|Reads map data| E[Waypoint Generator Node<br/>- Scan map for unknown areas<br/>- Cluster unexplored zones<br/>- Compute waypoint centroid]
+    D -->|Reads map data| E[Waypoint Generator Node<br/>- Scan unknown areas<br/>- Cluster zones<br/>- Compute waypoint]
 
-    E -->|Publishes next goal| F[/next_waypoint topic<br/>(PoseStamped)]
+    E -->|Publishes next goal| F[Next Waypoint Topic: PoseStamped]
 
     F --> G[Waypoint Executor Node<br/>- Receives waypoint<br/>- Sends goal to Nav2]
 
-    G -->|Nav2 Action Goal| H[Nav2 Navigation Stack<br/>- Global planner<br/>- Local planner<br/>- Controller + costmaps]
+    G -->|Nav2 Goal| H[Nav2 Stack<br/>- Global planner<br/>- Local planner<br/>- Costmaps]
 
     H -->|Robot moves| I[Robot Moves]
 
