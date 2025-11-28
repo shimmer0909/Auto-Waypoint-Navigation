@@ -1,0 +1,29 @@
+# ROS2 build artifacts
+build/
+install/
+log/
+colcon_ws/log/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code settings
+.vscode/
+*.code-workspace
+
+# System / editor files
+*.swp
+*.swo
+*.bak
+*~
+*.db
+*.vc.db
+
+# Logs
+*.log
+
+# Other
+.DS_Store
+Thumbs.db
+
