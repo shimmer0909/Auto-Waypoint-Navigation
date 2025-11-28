@@ -18,5 +18,5 @@ def main(args=None):
     node = MapListener()
     rclpy.spin(node)
 
-    # rclpy.shutdown()
+    rclpy.shutdown()
 

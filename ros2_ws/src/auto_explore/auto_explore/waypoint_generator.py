@@ -39,7 +39,7 @@ class WaypointGenerator(Node):
         # centroids = kmeans.cluster_centers_
 
         # Cluster via coarse grid (10x10 block)
-        block_size = 10
+        block_size = 20
         h, w = grid.shape
 
         centroids = []
@@ -89,5 +89,9 @@ class WaypointGenerator(Node):
 
 def main(args=None):
     rclpy.init(args=args)
+
     node = WaypointGenerator()
     rclpy.spin(node)
+
+    rclpy.shutdown()
+
