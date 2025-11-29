@@ -70,9 +70,9 @@ Once the robot has visited all waypoints and the map looks complete:
 ```bash
 ros2 run nav2_map_server map_saver_cli -f ~/maps/auto_waypoint_nav_map
 ```
-This saves:
-1. nav2_bt_navigator_map.yaml
-2. nav2_bt_navigator_map.pgm
+This saves below files in maps folder:
+1. auto_waypoint_nav_map.yaml
+2. auto_waypoint_nav_map.pgm
 
 ## 🛠 Potential Pitfalls
 
@@ -80,15 +80,31 @@ This saves:
 
 Due to LiDAR not able to detech very low objects the robot sometimes can get stuck.
 
-**Possible solution :-**
+**Possible solutions :-**
 1. A robot with bigger wheels.
 2. A robot with 4 wheels.
 3. Sensor attacked lower on the robot.
 
+### 2. To much path overlapping between waypoints
+
+In this code we are selecting the farthest centroid as out next waypoint which may lead to same path being traced multiple time.
+
+**Possible solutions :-**
+1. Pick a point based on a threshold so that it is not too short of a distance and neither too long.
+2. Decrease block_size so that smaller areas are searched for new waypoints.
+3. Decrease min_dist variable in is_far_enough function to not skip closer waypoints
+**Note**
+Set the values in a way that the robot does not start rotating or taking too much time in one perticular area.
+
+### 3. Incorrect or inverted world coordinates.
+
+Please note that cx increments downward on the screen and cy horizontally so,
+1. cx = row That will be used in calculating y coordinate of the world
+
 ## Video
 
-[Final Demo](https://drive.google.com/file/d/1Wd6d5arcSVy20p_EnRnbW0kVb2GHAEV1/view?usp=drive_link)
-[Robot stuck on ledge](https://drive.google.com/file/d/1rBos0_8quxtEsWgYZFxs9tSKnsG3w4KR/view?usp=drive_link)
+1. [Final Demo](https://drive.google.com/file/d/1Wd6d5arcSVy20p_EnRnbW0kVb2GHAEV1/view?usp=drive_link)
+2. [Robot stuck on ledge](https://drive.google.com/file/d/1rBos0_8quxtEsWgYZFxs9tSKnsG3w4KR/view?usp=drive_link)
 
 ## 📌 Architecture Overview
 ```bash
@@ -159,9 +175,10 @@ It reads the map and decides where the robot should go next.
 1. Convert occupancy grid into a usable array
 2. Find all unexplored regions (-1 in map)
 3. Cluster them into big logical zones
-4. Pick 1 zone to explore
-5. Compute the (x, y) world coordinate
-6. Publish that as a waypoint
+4. Filter out centroids that are too close to already visited points
+5. Pick the farthest zone to explore
+6. Compute the (x, y) world coordinate
+7. Publish that as a waypoint
 
 **Publisher/subscriber:**
 1. Subscribes → /map
