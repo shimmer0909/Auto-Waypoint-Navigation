@@ -99,7 +99,8 @@ Set the values in a way that the robot does not start rotating or taking too muc
 ### 3. Incorrect or inverted world coordinates.
 
 Please note that cx increments downward on the screen and cy horizontally so,
-1. cx = row That will be used in calculating y coordinate of the world
+1. cx = row That will be used in calculating y coordinate of the world.
+2. Similarly, cy = col will be used in calculating x coordinate of the world 
 
 ## Video
 
@@ -195,7 +196,8 @@ Take a waypoint and tell Nav2 to go there.
 
 **It waits until:**
 1. Nav2 reaches the waypoint
-2. Then waits for the next waypoint from the generator
+2. Generator is notified of completion by /waypoint_reached subscriber
+3. Generator creates next waypoint and tells executor
 
 ### 6️⃣ Nav2
 
