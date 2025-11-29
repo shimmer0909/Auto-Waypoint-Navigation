@@ -63,43 +63,32 @@ rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz
 ros2 launch auto_explore auto_explore.launch.py
 ```
 
-## 🛠 Potential Pitfalls & What to Check if It Doesn’t Work
+## 🗺️ Step 3: Observe and Save the Map
 
-### 1. Waypoints are being generated, but Nav2 is NOT executing them.
+Once the robot has visited all waypoints and the map looks complete:
 
-Log in Nav2 Terminal that confirm's it
-```vbnet
-Message Filter dropping message: frame 'base_scan' at time X 
-for reason 'the timestamp on the message is earlier than all the data in the transform cache'
-```
-
-This means:
-
-1. Your LIDAR topic /scan has timestamps not synchronized with TF
-2. Or /tf has no valid transform from base_scan → base_link
-3. Or simulation time (use_sim_time) is inconsistent
-4. So Nav2 discards sensor data → costmap stays empty → robot cannot plan → waypoints not executed
-
-Fix:
-
-1. Check if /scan is publishing
 ```bash
-ros2 topic echo /scan
+ros2 run nav2_map_server map_saver_cli -f ~/maps/auto_waypoint_nav_map
 ```
-2. Nav2 and slam_toolbox must use use_sim_time:=true
+This saves:
+1. nav2_bt_navigator_map.yaml
+2. nav2_bt_navigator_map.pgm
 
-3. Check TF tree
-```bash
-ros2 run tf2_tools view_frames.py
-```
-**If output is 'No executable found'.**
-The command failed because tf2_tools is not installed in ROS 2 Humble by default.
+## 🛠 Potential Pitfalls
 
-Install the package and then run it:
-```bash
-sudo apt install ros-humble-tf2-tools
-ros2 run tf2_tools view_frames
-```
+### 1. Robot getting stuck on shelf edge or a ledge 
+
+Due to LiDAR not able to detech very low objects the robot sometimes can get stuck.
+
+**Possible solution :-**
+1. A robot with bigger wheels.
+2. A robot with 4 wheels.
+3. Sensor attacked lower on the robot.
+
+## Video
+
+[Final Demo](https://drive.google.com/file/d/1Wd6d5arcSVy20p_EnRnbW0kVb2GHAEV1/view?usp=drive_link)
+[Robot stuck on ledge](https://drive.google.com/file/d/1rBos0_8quxtEsWgYZFxs9tSKnsG3w4KR/view?usp=drive_link)
 
 ## 📌 Architecture Overview
 ```bash

@@ -3,6 +3,8 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped 
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
+from std_msgs.msg import Bool
+
 
 class WaypointExecutor(Node):
     def __init__(self):
@@ -12,6 +14,9 @@ class WaypointExecutor(Node):
 
         self.goal_queue = []
         self.current_goal_active = False
+
+        self.reached_pub = self.create_publisher(Bool, "/waypoint_reached", 10)
+
 
     def wp_callback(self, wp):
         # self.get_logger().info(f"Executing waypoint: {wp.pose.position.x:.2f}, {wp.pose.position.y:.2f}")
@@ -23,9 +28,9 @@ class WaypointExecutor(Node):
         # future.add_done_callback(self.goal_done)
 
         # Add waypoint to queue
-        self.get_logger().info(f"Waypoint Recieved: {wp.pose.position.x:.2f}, {wp.pose.position.y:.2f}")
+        # self.get_logger().info(f"Waypoint Recieved: {wp.pose.position.x:.2f}, {wp.pose.position.y:.2f}")
         self.goal_queue.append(wp)
-        self.get_logger().info(f"Waypoint Added: {self.goal_queue}")
+        # self.get_logger().info(f"Waypoint Added: {self.goal_queue}")
         # Start processing if not already active
         if not self.current_goal_active:
             self.send_next_goal()
@@ -36,13 +41,14 @@ class WaypointExecutor(Node):
             return
 
         wp = self.goal_queue.pop(0)
-        self.get_logger().info(f"Setting next waypoint: {wp.pose.position.x:.2f}, {wp.pose.position.y:.2f}")
+        # self.get_logger().info(f"Setting next waypoint: {wp.pose.position.x:.2f}, {wp.pose.position.y:.2f}")
         goal = NavigateToPose.Goal()
         goal.pose = wp
 
         self.nav_client.wait_for_server()
-        self.get_logger().info(f"Sending next waypoint: {wp.pose.position.x:.2f}, {wp.pose.position.y:.2f}")
+        # self.get_logger().info(f"Sending next waypoint: {wp.pose.position.x:.2f}, {wp.pose.position.y:.2f}")
 
+        self.current_goal_active = True
         send_goal_future = self.nav_client.send_goal_async(goal)
         send_goal_future.add_done_callback(self.goal_response_callback)
 
@@ -55,14 +61,21 @@ class WaypointExecutor(Node):
             self.send_next_goal()
             return
 
-        self.get_logger().info("Goal accepted. Waiting for result...")
+        # self.get_logger().info("Goal accepted. Waiting for result...")
 
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self.result_callback)
 
     def result_callback(self, future):
         result = future.result().result
-        self.get_logger().info("Reached waypoint.")
+        self.get_logger().info(f"Status: {result.result}")
+
+        # IMPORTANT: publish that we really reached the waypoint
+        if hasattr(result, "result") and result.result == 0: # SUCCEEDED
+            self.reached_pub.publish(Bool(data=True))
+        else:
+            self.get_logger().warn("Goal failed or status unknown — forcing next waypoint")
+            self.reached_pub.publish(Bool(data=True))
 
         self.current_goal_active = False
         self.send_next_goal()

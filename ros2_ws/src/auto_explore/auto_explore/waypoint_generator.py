@@ -3,6 +3,8 @@ from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import PoseStamped
 import numpy as np
+from std_msgs.msg import Bool
+
 # from sklearn.cluster import KMeans
 
 class WaypointGenerator(Node):
@@ -13,13 +15,36 @@ class WaypointGenerator(Node):
         self.create_subscription(OccupancyGrid, '/map', self.map_callback, 10)
         self.wp_pub = self.create_publisher(PoseStamped, '/next_waypoint', 10)
 
-        self.timer = self.create_timer(3.0, self.tick)
+        self.init_timer = self.create_timer(3.0, self.first_tick)
+        self.create_subscription(Bool, "/waypoint_reached", self.reached_callback, 10)
+
 
         # memory for previously visited waypoints
         self.visited_points = []
 
     def map_callback(self, msg):
         self.map = msg
+        self.get_logger().info("updated Map Received!")
+
+    def first_tick(self):
+        if self.map is None:
+            return
+        self.tick()                 # generate first waypoint
+        self.init_timer.cancel()    # stop timer forever
+
+    def is_far_enough(self, cx, cy):
+        min_dist = 2.0  # meters
+        for vx, vy in self.visited_points:
+            dist = np.hypot(cx - vx, cy - vy)
+            world_dist = dist * self.map.info.resolution
+
+            if world_dist < min_dist:
+                return False
+        return True
+    
+    def reached_callback(self, msg):
+        if msg.data:       # only trigger on True
+            self.tick()
 
     def tick(self):
         if self.map is None:
@@ -39,7 +64,7 @@ class WaypointGenerator(Node):
         # centroids = kmeans.cluster_centers_
 
         # Cluster via coarse grid (10x10 block)
-        block_size = 20
+        block_size = 50
         h, w = grid.shape
 
         centroids = []
@@ -55,26 +80,34 @@ class WaypointGenerator(Node):
         if len(centroids) == 0:
             return
 
-        # Choose centroid farthest from previous ones
+        # Filter out centroids that are too close to previously visited points
+        filtered = [c for c in centroids if self.is_far_enough(c[0], c[1])]
+
+        if len(filtered) == 0:
+            self.get_logger().info(f"No sufficiently far centroids found. Skipping. {centroids}")
+            return
+
+        # Choose farthest-from-visited among filtered
         if len(self.visited_points) == 0:
-            cx, cy = centroids[0]
+            cx, cy = filtered[0]
         else:
             cx, cy = max(
-                centroids,
-                key=lambda p: min(
-                    np.hypot(p[0] - v[0], p[1] - v[1]) for v in self.visited_points
-                )
+                filtered,
+                key=lambda p: min(np.hypot(p[0] - v[0], p[1] - v[1]) for v in self.visited_points)
             )
 
         # store for future avoidance
         self.visited_points.append((cx, cy))
-
+        self.get_logger().info(f"Visited Points: {self.visited_points}")
         # Pick the nearest centroid to robot OR in order [while using kmean]
         # cx, cy = centroids[0]
 
         # Convert grid → world coordinates
-        wx = cx * self.map.info.resolution + self.map.info.origin.position.x
-        wy = cy * self.map.info.resolution + self.map.info.origin.position.y
+        row = cx
+        col = cy
+
+        wx = col * self.map.info.resolution + self.map.info.origin.position.x
+        wy = row * self.map.info.resolution + self.map.info.origin.position.y
 
         # Create waypoint message
         wp = PoseStamped()
